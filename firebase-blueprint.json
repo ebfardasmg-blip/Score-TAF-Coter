@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "military": {
+      "title": "Military",
+      "description": "Information about a military personnel",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "rank": { "type": "string" },
+        "age": { "type": "integer" },
+        "sex": { "type": "string", "enum": ["M", "F"] },
+        "om": { "type": "string" },
+        "section": { "type": "string" },
+        "branch": { "type": "string" },
+        "teachingLine": { "type": "string", "enum": ["BELICO", "SAUDE", "COMPLEMENTAR", "TECNOLOGICO"] },
+        "createdAt": { "type": "integer" }
+      },
+      "required": ["name", "rank", "age", "sex", "om", "teachingLine"]
+    },
+    "tafResult": {
+      "title": "TAF Result",
+      "description": "Results of a TAF test for a military",
+      "type": "object",
+      "properties": {
+        "militaryId": { "type": "string" },
+        "date": { "type": "integer" },
+        "year": { "type": "integer" },
+        "tafType": { "type": "string" },
+        "callType": { "type": "string" },
+        "results": {
+          "type": "object",
+          "properties": {
+            "run": { "type": "integer" },
+            "pushUps": { "type": "integer" },
+            "sitUps": { "type": "integer" },
+            "pullUps": { "type": "integer" },
+            "pullUpsSuspension": { "type": "integer" }
+          }
+        },
+        "scores": { "type": "object" },
+        "mentions": { "type": "object" },
+        "status": { "type": "string", "enum": ["draft", "final"] },
+        "evaluators": { "type": "object" }
+      },
+      "required": ["militaryId", "date", "results"]
+    }
+  },
+  "firestore": {
+    "/militaries/{militaryId}": {
+      "schema": "military",
+      "description": "Collection of military personnel"
+    },
+    "/taf_results/{resultId}": {
+      "schema": "tafResult",
+      "description": "Collection of TAF test results"
+    }
+  }
+}

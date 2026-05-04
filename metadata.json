@@ -1,0 +1,6 @@
+{
+  "name": "04-05 Remix: TAF Digital EB",
+  "description": "Sistema completo para registro, cálculo e gestão do Teste de Aptidão Física (TAF) do Exército Brasileiro, com suporte a múltiplas linhas de ensino e histórico de desempenho.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

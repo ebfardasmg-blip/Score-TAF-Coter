@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Functions
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    // Entity Validations
+    function isValidMilitary(data) {
+      return data.keys().hasAll(['name', 'rank', 'age', 'sex', 'om', 'teachingLine']) &&
+             data.name is string && data.name.size() <= 100 &&
+             data.rank is string && data.rank.size() <= 50 &&
+             data.age is int && data.age >= 17 && data.age <= 80 &&
+             data.sex in ['M', 'F'] &&
+             data.om is string && data.om.size() <= 150 &&
+             data.teachingLine in ['BELICO', 'SAUDE', 'COMPLEMENTAR', 'TECNOLOGICO', 'LEMB'];
+    }
+
+    function isValidTAFResult(data) {
+      return data.keys().hasAll(['militaryId', 'date', 'results', 'mentions']) &&
+             isValidId(data.militaryId) &&
+             data.date is int &&
+             data.results is map &&
+             data.results.run is int && data.results.run >= 0 && data.results.run <= 10000 &&
+             data.results.pushUps is int && data.results.pushUps >= 0 && data.results.pushUps <= 500 &&
+             data.results.sitUps is int && data.results.sitUps >= 0 && data.results.sitUps <= 500 &&
+             data.results.pullUps is int && data.results.pullUps >= 0 && data.results.pullUps <= 200 &&
+             data.mentions is map &&
+             data.status in ['draft', 'final'];
+    }
+
+    // Collections
+    match /militaries/{militaryId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidMilitary(incoming());
+      allow update: if isSignedIn() && isValidMilitary(incoming()) && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'rank', 'age', 'sex', 'om', 'teachingLine', 'section', 'branch']);
+      allow delete: if isSignedIn(); // In production, this should be restricted to admins
+    }
+
+    match /taf_results/{resultId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidTAFResult(incoming()) && 
+                    exists(/databases/$(database)/documents/militaries/$(incoming().militaryId));
+      
+      allow update: if isSignedIn() && isValidTAFResult(incoming()) && (
+        // Action: Partial Update (Applicators)
+        (existing().status == 'draft' && incoming().diff(existing()).affectedKeys().hasAny(['results', 'evaluators', 'scores', 'mentions', 'updatedAt'])) ||
+        // Action: Homologation (Gestor)
+        (existing().status == 'draft' && incoming().status == 'final' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt', 'date', 'results', 'scores', 'mentions', 'evaluators']))
+      );
+      
+      allow delete: if isSignedIn();
+    }
+  }
+}
